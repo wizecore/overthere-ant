@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project default="build" name="Create Runnable Jar for Project com.wizecore.overthere.ant with libraries in sub-folder">
+	<path id="runtime.classpath">
+		<fileset dir="lib">
+			<include name="*.jar"/>
+		</fileset>
+	</path>
+
+    <target name="build">
+		<property name="basepath" value="dist"/>
+		<property name="dir.name" value="overthere"/>
+		<property name="overthere.path" value="."/>
+		<property name="overthere.lib.path" value="${overthere.path}/lib"/>
+
+		<mkdir dir="build"/>
+		<mkdir dir="${basepath}"/>
+		<javac target="1.6" destdir="build" classpathref="runtime.classpath">
+			<src path="src"/>
+    		<src path="overthere-master/src/main/java"/>
+    	</javac>
+
+        <jar destfile="${basepath}/overthere-ant.jar">
+            <fileset dir="build"/>
+
+            <fileset dir="overthere-master/src/main/java">
+            	<exclude name="**/*.java"/>
+            </fileset>
+
+            <fileset dir="src">
+            	<exclude name="**/*.java"/>
+            </fileset>
+        </jar>
+
+        <delete dir="${basepath}/${dir.name}"/>
+        <mkdir dir="${basepath}/${dir.name}"/>
+        <copy todir="${basepath}/${dir.name}">
+        	<fileset dir="${overthere.path}/lib">
+            	<exclude name="**-sources.jar"/>
+        	</fileset>
+        </copy>
+	</target>
+</project>
