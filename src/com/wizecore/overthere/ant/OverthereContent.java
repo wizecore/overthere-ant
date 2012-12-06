@@ -1,5 +1,11 @@
 package com.wizecore.overthere.ant;
 
+/**
+ * Collection of file content.
+ * 
+ * @ant.task ignore="true"
+ * @author huksley
+ */
 public class OverthereContent {
 
 	private OverthereExecute exec;

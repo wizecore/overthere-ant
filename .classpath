@@ -2,6 +2,7 @@
 <classpath>
 	<classpathentry kind="src" path="overthere-master/examples/src/main/java"/>
 	<classpathentry kind="src" path="overthere-master/src/main/java"/>
+	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="lib" path="lib/commons-net-2.0.jar" sourcepath="lib/commons-net-2.0-sources.jar"/>
 	<classpathentry kind="lib" path="lib/commons-net-ftp-2.0.jar"/>
 	<classpathentry kind="lib" path="lib/dom4j-1.6.1.jar"/>
@@ -24,6 +25,7 @@
 	<classpathentry kind="lib" path="lib/testng-5.14.10.jar"/>
 	<classpathentry kind="lib" path="lib/javassist.jar"/>
 	<classpathentry kind="lib" path="lib/truezip-swing-7.7.1.jar" sourcepath="lib/truezip-swing-7.7.1-sources.jar"/>
+	<classpathentry kind="lib" path="lib/ant.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
 	<classpathentry kind="lib" path="lib/truezip-driver-file-7.7.1.jar" sourcepath="lib/truezip-driver-file-7.7.1-sources.jar"/>

@@ -1,5 +1,21 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <project default="build" name="Create Runnable Jar for Project com.wizecore.overthere.ant with libraries in sub-folder">
+  	<property name="package.names" value="com.wizecore.overthere.ant" />
+  	<property name="templates.dir" value="lib/antdoclet/terse" />
+  	<property name="source.dir" value="src" />
+
+	<path id="doclet.classpath">
+		<pathelement path="build"/>
+
+		<fileset dir="lib">
+			<include name="*.jar"/>
+		</fileset>
+
+		<fileset dir="lib/antdoclet/lib">
+			<include name="*.jar"/>
+		</fileset>
+	</path>
+
 	<path id="runtime.classpath">
 		<fileset dir="lib">
 			<include name="*.jar"/>
@@ -35,8 +51,40 @@
         <mkdir dir="${basepath}/${dir.name}"/>
         <copy todir="${basepath}/${dir.name}">
         	<fileset dir="${overthere.path}/lib">
+        		<include name="*.jar"/>
             	<exclude name="**-sources.jar"/>
         	</fileset>
         </copy>
+	</target>
+
+	<target name="javadoc">
+  	    <delete dir="doc/tasks"/>
+		<mkdir dir="doc/tasks"/>
+		<javadoc access="public" sourcepath="${source.dir}" destdir="doc/tasks" 
+			packagenames="${package.names}"
+            docletpathref="doclet.classpath"
+			classpathref="runtime.classpath"
+            source="1.6">
+			<doclet name="com.neuroning.antdoclet.AntDoclet">
+				<param name="-doctitle" value="overthere-ant" />
+				<param name="-templatesdir" value="${templates.dir}"/>
+				<param name="-templates" value="html/main.vm" />
+				<param name="-taskslibfile" value="lib/none.xml" />
+				<param name="-taskscategoryfile" value="lib/none.xml" />
+			</doclet>
+		</javadoc>
+		
+		<copy todir="doc/tasks" overwrite="true">
+			<fileset dir="${templates.dir}/html/">
+				<exclude name="*.vm"/>
+			</fileset>
+		</copy>
+	</target>
+
+	<target name="pdf" if="html2pdf">
+		<exec executable="${html2pdf}">
+			<arg value="file:///${basedir}/doc/tasks/content.html"/>
+		    <arg value="overthere-ant-tasks.pdf"/>
+		</exec>
 	</target>
 </project>

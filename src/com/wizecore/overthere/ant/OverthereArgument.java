@@ -1,5 +1,11 @@
 package com.wizecore.overthere.ant;
 
+/**
+ * Collection of arguments to command.
+ * 
+ * @ant.task ignore="true"
+ * @author huksley
+ */
 public class OverthereArgument {
 
 	String value = "";

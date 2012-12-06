@@ -22,10 +22,31 @@ import com.xebialabs.overthere.cifs.CifsConnectionBuilder;
 import com.xebialabs.overthere.util.ConsoleOverthereProcessOutputHandler;
 
 /**
- * Execution task for ant which working using SSH on Unix, WinRM on Windows.
- * See https://github.com/xebialabs/overthere for more info. 
+ * Execution task for ant which working using SSH on Unix target machine, WinRM on Windows target machine.
+ * See <a href="https://github.com/xebialabs/overthere">overthere</a> for more info.
  * 
- * @author ruslan
+ * <p>Example 1 - copy and execute script.</p>
+ * <pre>
+ * &lt;overexec host="testwinvm" username="Administrator" password="123" os="WINDOWS" file="install.bat"&gt;
+ *   &lt;arg&gt;install.bat&lt;/arg&gt;
+ * &lt;/overexec&gt;
+ * </pre>
+ *  
+ * <p>Example 2 - create script.</p>
+ * <pre>
+ * &lt;overexec host="testlinuxvm" username="root" password="r$$t" os="UNIX" toFile="install.sh"&gt;
+ *   &lt;content&gt;
+ *   echo Installing
+ *   echo apt-get install mc
+ *   echo apt-get install java-jdk-6
+ *   &lt;/content&gt;
+ *   &lt;arg&gt;sh&lt;/arg&gt;
+ *   &lt;arg&gt;install.sh&lt;/arg&gt;
+ * &lt;/overexec&gt;
+ * </pre>
+ * 
+ * @ant.task name="overexec" category="overexec"
+ * @author huksley
  */
 public class OverthereExecute extends Task {
 	String host;
@@ -239,7 +260,8 @@ public class OverthereExecute extends Task {
 	}
 
 	/**
-	 * Setter for {@link OverthereExecute#host}.
+	 * Host to connect to.
+	 * @ant.required
 	 */
 	public void setHost(String host) {
 		this.host = host;
@@ -253,7 +275,8 @@ public class OverthereExecute extends Task {
 	}
 
 	/**
-	 * Setter for {@link OverthereExecute#username}.
+	 * Username to connect as.
+	 * @ant.required
 	 */
 	public void setUsername(String username) {
 		this.username = username;
@@ -267,7 +290,8 @@ public class OverthereExecute extends Task {
 	}
 
 	/**
-	 * Setter for {@link OverthereExecute#password}.
+	 * Password for user.
+	 * @ant.required
 	 */
 	public void setPassword(String password) {
 		this.password = password;
@@ -281,7 +305,7 @@ public class OverthereExecute extends Task {
 	}
 
 	/**
-	 * Setter for {@link OverthereExecute#os}.
+	 * Operating system type. Either UNIX or WINDOWS. Default is WINDOWS.
 	 */
 	public void setOs(String os) {
 		this.os = os;
@@ -295,7 +319,7 @@ public class OverthereExecute extends Task {
 	}
 
 	/**
-	 * Setter for {@link OverthereExecute#domain}.
+	 * Domain to login to. This must be Fully Qualified domain name, i.e. my.domain.com.
 	 */
 	public void setDomain(String domain) {
 		this.domain = domain;
@@ -309,7 +333,7 @@ public class OverthereExecute extends Task {
 	}
 
 	/**
-	 * Setter for {@link OverthereExecute#dir}.
+	 * Directory to change to. This must be in OS form, i.e. C:\ in Windows, / on Unix.
 	 */
 	public void setDir(String dir) {
 		this.dir = dir;
@@ -337,7 +361,7 @@ public class OverthereExecute extends Task {
 	}
 
 	/**
-	 * Setter for {@link OverthereExecute#file}.
+	 * Local file to copy. Optional. Contents of file can also be specified using nested &lt;content&gt;...&lt;/content&gt; tag.
 	 */
 	public void setFile(File file) {
 		this.file = file;
@@ -351,7 +375,8 @@ public class OverthereExecute extends Task {
 	}
 
 	/**
-	 * Setter for {@link OverthereExecute#toFile}.
+	 * Specifies host file to copy. If <code>file=</code> is not set then this will be set to file name in temp dir.
+	 * If <code>contents</code> is set, then this is <b>required</b>.
 	 */
 	public void setToFile(String toFile) {
 		this.toFile = toFile;
@@ -365,7 +390,7 @@ public class OverthereExecute extends Task {
 	}
 
 	/**
-	 * Setter for {@link OverthereExecute#overwrite}.
+	 * Overwrite file is it newer than local file. Default is false.
 	 */
 	public void setOverwrite(boolean overwrite) {
 		this.overwrite = overwrite;
@@ -379,7 +404,7 @@ public class OverthereExecute extends Task {
 	}
 
 	/**
-	 * Setter for {@link OverthereExecute#encoding}.
+	 * Encoding for contents. Default is UTF-8.
 	 */
 	public void setEncoding(String encoding) {
 		this.encoding = encoding;
@@ -393,7 +418,8 @@ public class OverthereExecute extends Task {
 	}
 
 	/**
-	 * Setter for {@link OverthereExecute#content}.
+	 * Content for file. If this is specified (either by using attribute or by using nested &lt;content&gt;...&lt;/content&gt; tag),  
+	 * then <code>file=</code> must not be specified.
 	 */
 	public void setContent(StringBuffer content) {
 		this.content = content;
@@ -407,7 +433,7 @@ public class OverthereExecute extends Task {
 	}
 
 	/**
-	 * Setter for {@link OverthereExecute#temporary}.
+	 * Specifies whether file copied is temporary. If temporary file copied will be deleted after execution. 
 	 */
 	public void setTemporary(boolean temporary) {
 		this.temporary = temporary;
@@ -421,7 +447,7 @@ public class OverthereExecute extends Task {
 	}
 
 	/**
-	 * Setter for {@link OverthereExecute#https}.
+	 * Specifies whether is to use HTTPS for WinRM connection. Default is false. 
 	 */
 	public void setHttps(boolean https) {
 		this.https = https;
@@ -435,7 +461,7 @@ public class OverthereExecute extends Task {
 	}
 
 	/**
-	 * Setter for {@link OverthereExecute#locale}.
+	 * Locale for WinRM. If not specified, will be set by overthere.
 	 */
 	public void setLocale(String locale) {
 		this.locale = locale;
@@ -449,7 +475,7 @@ public class OverthereExecute extends Task {
 	}
 
 	/**
-	 * Setter for {@link OverthereExecute#retry}.
+	 * Number of retries to establish connection. Usefull if machine is VM and recently have been created.
 	 */
 	public void setRetry(int retry) {
 		this.retry = retry;
@@ -463,7 +489,7 @@ public class OverthereExecute extends Task {
 	}
 
 	/**
-	 * Setter for {@link OverthereExecute#retrySleep}.
+	 * Sleep period in milliseconds between retry timeouts. Default is 5 seconds.
 	 */
 	public void setRetrySleep(long retrySleep) {
 		this.retrySleep = retrySleep;
@@ -477,7 +503,8 @@ public class OverthereExecute extends Task {
 	}
 
 	/**
-	 * Setter for {@link OverthereExecute#retryMatch}.
+	 * Exception text match to retry. Default is <code>Response code was 401</code>.
+	 * Also will retry implicitly on <code>java.net.ConnectionException</code>.
 	 */
 	public void setRetryMatch(String retryMatch) {
 		this.retryMatch = retryMatch;

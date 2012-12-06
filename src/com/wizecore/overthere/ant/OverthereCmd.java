@@ -1,5 +1,11 @@
 package com.wizecore.overthere.ant;
 
+/**
+ * Sample of command line execution.
+ * 
+ * @ant.task ignore="true"
+ * @author huksley
+ */
 public class OverthereCmd {
 
 	public static void main(String[] args) {
