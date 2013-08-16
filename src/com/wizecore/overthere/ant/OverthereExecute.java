@@ -67,6 +67,7 @@ public class OverthereExecute extends Task {
 	int retry = 10;
 	long retrySleep = 5000;
 	String retryMatch = ".*Response code was 401.*";
+	int timeout;
 	
 	@Override
 	public void execute() throws BuildException {
@@ -103,6 +104,10 @@ public class OverthereExecute extends Task {
 					if (locale != null) {
 						options.set(CifsConnectionBuilder.WINRM_LOCALE, locale);
 					}
+					
+					if (timeout > 0) {
+						options.set(CifsConnectionBuilder.WINRM_TIMEMOUT, "PT" + timeout + ".000S");
+					}
 				}		
 				
 				OverthereConnection over = Overthere.getConnection(proto, options);
@@ -120,8 +125,9 @@ public class OverthereExecute extends Task {
 						}
 					} else {
 						wdir = over.getTempFile("1.tmp").getParentFile();
-						log("Working directory " + this.dir);
-						over.setWorkingDirectory(wdir);						
+						log("Working directory (automatically determined) " + wdir);
+						this.dir = wdir.getPath();
+						over.setWorkingDirectory(wdir);
 					}
 					
 					if (file != null || (content != null &&  toFile != null)) {
@@ -177,10 +183,14 @@ public class OverthereExecute extends Task {
 							}
 						} else
 						if (content != null) {
-							OverthereFile remote = wdir != null ? over.getFile(wdir, toFile) : over.getFile(toFile);
-							log("Writing content to host " + toFile);
-							byte[] bb = content.toString().getBytes(encoding);
-							OutputStream os = remote.getOutputStream();
+							remoteFile = wdir != null ? over.getFile(wdir, toFile) : over.getFile(toFile);
+							String scontent = content.toString();
+							scontent = scontent.trim();
+							scontent = scontent.replaceAll("\\r\\n", "\n");
+							scontent = scontent.replaceAll("\\n", "\r\n");
+							log("Writing content to host " + remoteFile);
+							byte[] bb = scontent.getBytes(encoding);
+							OutputStream os = remoteFile.getOutputStream();
 							try {
 								os.write(bb, 0, bb.length);
 							} finally {
@@ -508,5 +518,19 @@ public class OverthereExecute extends Task {
 	 */
 	public void setRetryMatch(String retryMatch) {
 		this.retryMatch = retryMatch;
+	}
+
+	/**
+	 * Timeout in seconds for execution. If not set, then default is in effect, which is 60 seconds.
+	 */	
+	public int getTimeout() {
+		return timeout;
+	}
+
+	/**
+	 * Timeout in seconds for execution. If not set, then default is in effect, which is 60 seconds.
+	 */	
+	public void setTimeout(int timeout) {
+		this.timeout = timeout;
 	}
 }
