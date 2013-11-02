@@ -2,11 +2,14 @@ package com.wizecore.overthere.ant;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ConnectException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.StringTokenizer;
 
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.Task;
@@ -19,16 +22,20 @@ import com.xebialabs.overthere.OverthereConnection;
 import com.xebialabs.overthere.OverthereFile;
 import com.xebialabs.overthere.RuntimeIOException;
 import com.xebialabs.overthere.cifs.CifsConnectionBuilder;
+import com.xebialabs.overthere.ssh.SshConnectionBuilder;
+import com.xebialabs.overthere.ssh.SshConnectionType;
 import com.xebialabs.overthere.util.ConsoleOverthereProcessOutputHandler;
 
 /**
  * Execution task for ant which working using SSH on Unix target machine, WinRM on Windows target machine.
  * See <a href="https://github.com/xebialabs/overthere">overthere</a> for more info.
+ * <p>
+ * You can copy a file and execute it, or simply copy file.
  * 
  * <p>Example 1 - copy and execute script.</p>
  * <pre>
  * &lt;overexec host="testwinvm" username="Administrator" password="123" os="WINDOWS" file="install.bat"&gt;
- *   &lt;arg&gt;install.bat&lt;/arg&gt;
+ *   &lt;cmd&gt;install.bat&lt;/cmd&gt;
  * &lt;/overexec&gt;
  * </pre>
  *  
@@ -40,7 +47,7 @@ import com.xebialabs.overthere.util.ConsoleOverthereProcessOutputHandler;
  *   echo apt-get install mc
  *   echo apt-get install java-jdk-6
  *   &lt;/content&gt;
- *   &lt;arg&gt;sh&lt;/arg&gt;
+ *   &lt;cmd&gt;sh&lt;/cmd&gt;
  *   &lt;arg&gt;install.sh&lt;/arg&gt;
  * &lt;/overexec&gt;
  * </pre>
@@ -61,12 +68,16 @@ public class OverthereExecute extends Task {
 	boolean overwrite;
 	String encoding = "UTF-8";
 	StringBuffer content;
-	boolean temporary = false;
+	boolean temporary = true;
+	boolean temporarySet = false;
 	boolean https = false;
 	String locale = null;
 	int retry = 10;
 	long retrySleep = 5000;
 	String retryMatch = ".*Response code was 401.*";
+	String jumpstation;
+	String downloadFile;
+	String downloadTo;
 	
 	@Override
 	public void execute() throws BuildException {
@@ -88,6 +99,28 @@ public class OverthereExecute extends Task {
 				options.set(ConnectionOptions.USERNAME, domain != null ? (username + "@" + domain.toUpperCase()) : username);
 				options.set(ConnectionOptions.PASSWORD, password);
 				options.set(ConnectionOptions.OPERATING_SYSTEM, OperatingSystemFamily.valueOf(os.toUpperCase()));
+				if (jumpstation != null) { 
+					ConnectionOptions jo = new ConnectionOptions();
+					jo.set(SshConnectionBuilder.CONNECTION_TYPE, SshConnectionType.TUNNEL);
+					for (StringTokenizer tk = new StringTokenizer(jumpstation, ",;\n"); tk.hasMoreTokens();) {
+						String n = tk.nextToken();
+						String v = "true";
+						if (n.indexOf('=') > 0) {
+							v = n.substring(n.indexOf('=') + 1).trim();
+							n = n.substring(0, n.indexOf('=')).trim();
+						}
+						if (n.equals("connectionType")) {
+							if (v.equals("ssh")) {
+								// Default
+							} else {
+								throw new BuildException("Only connectionType=ssh is supported");
+							}
+						} else {
+							jo.set(n, v);
+						}
+					}
+					options.set(ConnectionOptions.JUMPSTATION, jo);
+				}
 				
 				String proto = "ssh";
 				if (os.equals("WINDOWS")) {
@@ -140,6 +173,8 @@ public class OverthereExecute extends Task {
 							
 							if (toFile == null) {
 								toFile = file.getName(); 
+							} else {
+								temporary = false;
 							}
 							
 							if (os.equals("WINDOWS") && toFile.startsWith("/")) {
@@ -231,6 +266,37 @@ public class OverthereExecute extends Task {
 							remoteFile.delete();
 						}
 					}
+					
+					if (downloadFile != null) {
+						File f = new File(downloadFile);
+						String localFile = f.getName();
+						if (downloadTo != null) {
+							File ff = new File(downloadTo);
+							if (ff.isDirectory()) {
+								localFile = new File(ff, localFile).getPath();
+							} else {
+								localFile = downloadTo;
+							}
+						}
+						log("Downloading " + downloadFile + " to " + localFile);
+						InputStream is = over.getFile(downloadFile).getInputStream();
+						try {
+							FileOutputStream fos = new FileOutputStream(localFile);
+							try {
+								byte[] bb = new byte[2048];
+								int c = 0;
+								while ((c = is.read(bb)) >= 0) {
+									if (c > 0) {
+										fos.write(bb, 0, c);
+									}
+								}
+							} finally {
+								fos.close();
+							}
+						} finally {
+							is.close();
+						}
+					}
 				} finally {
 					over.close();
 				}
@@ -247,6 +313,12 @@ public class OverthereExecute extends Task {
 	}
 	
 	public OverthereArgument createArg() {
+		OverthereArgument arg = new OverthereArgument();
+		exec.add(arg);
+		return arg;
+	}
+	
+	public OverthereArgument createCmd() {
 		OverthereArgument arg = new OverthereArgument();
 		exec.add(arg);
 		return arg;
@@ -434,9 +506,12 @@ public class OverthereExecute extends Task {
 
 	/**
 	 * Specifies whether file copied is temporary. If temporary file copied will be deleted after execution. 
+	 * If &lt;cmd&gt; or &lt;arg&gt; nested tags is specified, file will be temporary by default, 
+	 * if only file=, toFile=... is specified, temporary is <code>false</code>.
 	 */
 	public void setTemporary(boolean temporary) {
 		this.temporary = temporary;
+		this.temporarySet = true;
 	}
 
 	/**
@@ -508,5 +583,52 @@ public class OverthereExecute extends Task {
 	 */
 	public void setRetryMatch(String retryMatch) {
 		this.retryMatch = retryMatch;
+	}
+	
+	/**
+	 * Sets jumpstation options. This property contains the connection options used
+	 * to connect to an SSH jumpstation, which used afterwards.
+	 * 
+	 * @param jumpstation
+	 */
+	public void setJumpstation(String jumpstation) {
+		this.jumpstation = jumpstation;
+	}
+	
+	/**
+	 * Getter for {@link OverthereExecute#jumpstation}.
+	 */
+	public String getJumpstation() {
+		return jumpstation;
+	}
+
+	/**
+	 * Getter for {@link #downloadFile}.
+	 */
+	public String getDownloadFile() {
+		return downloadFile;
+	}
+
+	/**
+	 * Downloads file from remote location after execution.
+	 */
+	public void setDownloadFile(String downloadFile) {
+		this.downloadFile = downloadFile;
+	}
+
+	/**
+	 * Getter for {@link #downloadTo}.
+	 */
+	public String getDownloadTo() {
+		return downloadTo;
+	}
+
+	/**
+	 * Sets filename for downloaded file.
+	 * If not specified, name of file used from {@link #downloadFile}. 
+	 * Can specify a folder.
+	 */
+	public void setDownloadTo(String downloadTo) {
+		this.downloadTo = downloadTo;
 	}
 }
