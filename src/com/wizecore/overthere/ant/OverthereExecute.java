@@ -19,7 +19,7 @@ import com.xebialabs.overthere.OverthereConnection;
 import com.xebialabs.overthere.OverthereFile;
 import com.xebialabs.overthere.RuntimeIOException;
 import com.xebialabs.overthere.cifs.CifsConnectionBuilder;
-import com.xebialabs.overthere.util.ConsoleOverthereProcessOutputHandler;
+import com.xebialabs.overthere.util.ConsoleOverthereExecutionOutputHandler;
 
 /**
  * Execution task for ant which working using SSH on Unix target machine, WinRM on Windows target machine.
@@ -68,6 +68,8 @@ public class OverthereExecute extends Task {
 	long retrySleep = 5000;
 	String retryMatch = ".*Response code was 401.*";
 	int timeout;
+	boolean failOnError = true;
+	String resultProperty;
 	
 	@Override
 	public void execute() throws BuildException {
@@ -211,7 +213,15 @@ public class OverthereExecute extends Task {
 										c.addArgument(getProject().replaceProperties(exec.get(i).getValue()));
 									}
 									
-									over.execute(ConsoleOverthereProcessOutputHandler.consoleHandler(), c);
+									int res = over.execute(ConsoleOverthereExecutionOutputHandler.sysoutHandler(), 
+											ConsoleOverthereExecutionOutputHandler.syserrHandler(), 
+											c);
+									if (resultProperty != null) {
+										getProject().setProperty(resultProperty, String.valueOf(res));
+									}
+									if (failOnError) {
+										throw new BuildException("Execution failed: " + res);
+									}
 								}
 							} catch (RuntimeIOException rio) {
 								if (rio.getCause() instanceof ConnectException && retry > 0) {
@@ -532,5 +542,35 @@ public class OverthereExecute extends Task {
 	 */	
 	public void setTimeout(int timeout) {
 		this.timeout = timeout;
+	}
+	
+	/**
+	 * Fail on execution returning anything other than 0. Defaults to true.
+	 * @param failOnError
+	 */
+	public void setFailOnError(boolean failOnError) {
+		this.failOnError = failOnError;
+	}
+
+	/**
+	 * Fail on execution returning anything other than 0. Defaults to true.
+	 */
+	public boolean isFailOnError() {
+		return failOnError;
+	}
+
+	/**
+	 * Property to set to execution result.
+	 * @param resultProperty
+	 */
+	public void setResultProperty(String resultProperty) {
+		this.resultProperty = resultProperty;
+	}
+	
+	/**
+	 * Property to set to execution result.
+	 */
+	public String getResultProperty() {
+		return resultProperty;
 	}
 }
