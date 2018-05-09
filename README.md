@@ -1,7 +1,7 @@
 overthere-ant
 =============
 
-Ant tasks for xebialabs/overthere
+Ant tasks for xebialabs/overthere.
 
 Declaring task
 ==============
